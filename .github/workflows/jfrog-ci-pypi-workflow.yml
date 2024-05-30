@@ -1,0 +1,40 @@
+name: "JFrog Build and Publish"
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+     runs-on: ubuntu-latest
+
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+
+       - name: Setup JFrog CLI
+         uses: jfrog/setup-jfrog-cli@v4
+         env:
+           # Authenticate using a single Config Token
+           # TODO: replace with OIDC or alike method that doesn't require user to add any secrets
+           JF_ENV_1: ${{ secrets.JF_SECRET_ENV_1 }}
+
+       - name: Set CLI Config
+         run: jf pip-config --global=true --repo-resolve=iceman9-pypi-DEV
+
+       - name: Install Deps
+         run: jf pip install .
+
+       - name: Package the project
+         run: python setup.py sdist bdist_wheel
+
+       - name: Publish
+         run: jf rt upload dist/ iceman9-pypi-DEV/ --project iceman9
+
+       - name: Publish Build info With JFrog CLI
+         run: |
+          # Collect environment variables for the build
+          jf rt build-collect-env --project iceman9
+          # Collect VCS details from git and add them to the build
+          jf rt build-add-git
+          # Publish build info
+          jf rt build-publish --project iceman9
