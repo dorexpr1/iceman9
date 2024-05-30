@@ -1,0 +1,42 @@
+# https://github.com/jfrog/documentation/blob/main/jfrog-applications/frogbot/templates/github-actions/frogbot-scan-repository.yml
+name: "Frogbot Scan Repository"
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    # The repository will be scanned once a day at 00:00 GMT.
+    - cron: "0 0 * * *"
+permissions:
+  contents: write
+  pull-requests: write
+  security-events: write
+jobs:
+  scan-repository:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The repository scanning will be triggered periodically on the following branches.
+        branch: ["main"]    # TODO: add making this configurable
+    steps:
+      - uses: jfrog/frogbot@v2
+        env:
+          # TODO: replace with OIDC or alike method that doesn't require user to add any secrets
+          # [Mandatory]
+          # JFrog platform URL
+          JF_URL: ${{ secrets.JF_URL }}
+
+          # [Mandatory if JF_USER and JF_PASSWORD are not provided]
+          # JFrog access token with 'read' permissions on Xray service
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+          # [Mandatory]
+          # The GitHub token is automatically generated for the job
+          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # [Mandatory]
+          # The name of the branch on which Frogbot will perform the scan
+          JF_GIT_BASE_BRANCH: ${{ matrix.branch }}
+
+          # [Optional]
+          # JFrog project. Learn more about it here: https://www.jfrog.com/confluence/display/JFROG/Projects
+          JF_PROJECT: iceman9
